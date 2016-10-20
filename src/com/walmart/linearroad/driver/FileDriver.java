@@ -1,7 +1,5 @@
 package com.walmart.linearroad.driver;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -89,8 +87,7 @@ public class FileDriver {
             while ((line = reader.readLine()) != null) {
 
                 // === Get the time field.
-                // We have to split the line to get at the time field. May research which is faster, tokenizing the whole
-                // line or just finding the field between the first and second commas.
+                // We have to parse the line to get at the time field.
                 int firstComma = line.indexOf(',');
                 String timeField = line.substring(firstComma + 1, line.indexOf(',', firstComma + 1));
                 int timeFieldInt = Integer.parseInt(timeField);
