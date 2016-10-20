@@ -10,14 +10,14 @@ import java.util.Random;
 
 /**
  * Created by Sung Kim on 10/19/16.
- *
+ * <p>
  * A Java Linear Road driver designed to send 5-15 seconds worth of data in a bursty manner.
  * To keep timings relatively accurate we take into account the amount of time needed to actually send the data before
  * sending the next set. So, if it takes 5 seconds to actually send 15 seconds (assuming 15 was the randomly
  * generated amount for the burst) of data, then if the next random amount was 5, the next set would start sending
  * immediately rather than wait another 5 seconds.
  * Otherwise a lag appears with the final run time +~10-20 min above the default desired end time of 180 min.
- *
+ * <p>
  * All of the drivers will have the common core and will be reading from a file. The only difference will be the
  * destination.
  */
@@ -48,7 +48,6 @@ public class FileDriver {
     // To be decided. Send to System.out for now.
 
     /**
-     *
      * @param numSeconds
      * @param fileName
      */
@@ -65,6 +64,11 @@ public class FileDriver {
         random = new Random();
     }
 
+    /**
+     * Per the paper we initially seek bursts of 5 - 15 seconds.
+     *
+     * @return the amount of time to wait.
+     */
     private int getInterval() {
         return random.nextInt(11) + 5;
     }
@@ -73,33 +77,41 @@ public class FileDriver {
      * Start the driver. All output goes to stdout via System.out.println() at the moment.
      */
     public void run() {
-        // Create the first random amount of time.
-        // We seek 5-15 inclusive.
-        numSeconds = getInterval();
-        // We need to set the break time.
-        int currMaxSeconds = numSeconds;
-        // Read the file up till the first record after numSeconds (and save that first line for the next batch).
-        String firstLine;
+
+        int currMaxSeconds = 0;
         // Hold each respective line from the file.
         String line = "";
+        // Hold how long it took to send the data.
+        long timeToSend;
+
+        // Begin reading the file.
         try {
             while ((line = reader.readLine()) != null) {
-                // Go ahead and wait numSeconds first, and then send numSeconds worth of data.
-                // Time how long it takes to send all the data.
-                // From the next actual wait time, subtract the amount of time it took to send the data.
 
+                // === Get the time field.
                 // We have to split the line to get at the time field. May research which is faster, tokenizing the whole
                 // line or just finding the field between the first and second commas.
                 int firstComma = line.indexOf(',');
-                String timeField = line.substring(firstComma+1, line.indexOf(',', firstComma+1));
+                String timeField = line.substring(firstComma + 1, line.indexOf(',', firstComma + 1));
                 int timeFieldInt = Integer.parseInt(timeField);
-                // See if we're done, which should be the first time we see the currMaxSeconds.
+
+                // === Try sleeping for the given amount of time.
+                // Go ahead and wait numSeconds first, and then send numSeconds worth of data.
                 if (timeFieldInt == currMaxSeconds) {
-                    // Save this first line.
-                    firstLine = line;
+
+                    // Set a new currMaxSeconds.
+                    numSeconds = getInterval();
+                    currMaxSeconds += numSeconds;
+                    // DEBUG
+                    System.out.println(numSeconds);
+
                     // Wait the numSeconds amount of time.
+                    // Time how long it takes to send all the data.
+                    // From the next actual wait time, subtract the amount of time it took to send the data.
                     try {
+                        // Catch the timeToSend here and substract for the base wait time.
                         Thread.sleep(numSeconds * 1000);
+                        // Start the timeToSend here.
                     } catch (InterruptedException ex) {
                         System.err.println(ex);
                         System.err.println("Waiting for new burst of " + numSeconds + " encountered an error.");
@@ -107,13 +119,9 @@ public class FileDriver {
                         // Exit for now.
                         System.exit(1);
                     }
-                    // Set a new currMaxSeconds
-                    currMaxSeconds += getInterval();
-                    // Print out the first line if one exists.
-                    if (!firstLine.equals("")) {
-                        System.out.println(firstLine);
-                    }
-                }
+               }
+                // === End processing send interval.
+
                 // Print out the line.
                 System.out.println(line);
             }
@@ -136,6 +144,7 @@ public class FileDriver {
 
     /**
      * Drive
+     *
      * @param args
      */
     public static void main(String[] args) {
